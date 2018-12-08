@@ -6,6 +6,7 @@ from octoprint.events import Events
 import RPi.GPIO as GPIO
 from time import sleep
 from flask import jsonify
+import json
 
 '''
 Uses Pi's internal pullups.
@@ -15,18 +16,25 @@ Open    - HIGH
 Closed  - LOW
 '''
 
+
 class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
-                             octoprint.plugin.EventHandlerPlugin,
-                             octoprint.plugin.TemplatePlugin,
-                             octoprint.plugin.SettingsPlugin,
-                             octoprint.plugin.BlueprintPlugin,
-                             octoprint.plugin.AssetPlugin):
+                                    octoprint.plugin.EventHandlerPlugin,
+                                    octoprint.plugin.TemplatePlugin,
+                                    octoprint.plugin.SettingsPlugin,
+                                    octoprint.plugin.BlueprintPlugin,
+                                    octoprint.plugin.AssetPlugin):
+    '''
+                      BCM   BOARD
+    PIN_EXTRUDER0   = 5     29
+    PIN_EXTRUDER1   = 6     31
+    PIN_DOOR        = 26    37
+    '''
 
     '''
     Popup messages
     '''
     def log_info(self, txt):
-        self._logger.info(txt) 
+        self._logger.info(str(txt))
 
     def log_error(self, txt):
         self._logger.error(txt)
@@ -43,60 +51,73 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
         self.log_error(txt)
         self._plugin_manager.send_plugin_message(self._identifier, dict(type="popup", msgType="error", hide=False, msg=str(txt)))
 
-    def status_dict(self):
-        status = "-1"
-        if self.has_pin():
-            status = "0" if self.no_filament() else "1"
-        status1 = "-1"
-        if self.has_pin2():
-            status1 = "0" if self.no_filament2() else "1"
-        return dict(filament=status, filament2=status1, active_tool=self.active_tool)
-    
+    def get_status(self):
+        extruder0 = -1
+        if self.enabled_extruder0:
+            extruder0 = 0 if self.outage_extruder0() else 1
+        extruder1 = None
+        if self.has_extruder1():
+            extruder1 = -1
+            if self.enabled_extruder1:
+                extruder1 = 0 if self.outage_extruder1() else 1
+        door = -1
+        if self.enabled_door:
+            door = 0 if self.outage_door() else 1
+        return dict(extruder0=extruder0, extruder1=extruder1, door=door, active_tool=self.active_tool)
+
     def send_status_to_hmi(self):
-        self._plugin_manager.send_plugin_message(self._identifier, self.status_dict())
+        self._plugin_manager.send_plugin_message(self._identifier, self.get_status())
 
     '''
     Settings
     '''
     @property
-    def enabled(self):
-        return int(self._settings.get(["enabled"]))
+    def enabled_extruder0(self):
+        return self._settings.get_boolean(["enabled_extruder0"])
 
     @property
-    def pin(self):
-        return int(self._settings.get(["pin"]))
+    def bounce_extruder0(self):
+        return self._settings.get_int(["bounce_extruder0"])
 
     @property
-    def bounce(self):
-        return int(self._settings.get(["bounce"]))
+    def contact_extruder0(self):
+        return self._settings.get_int(["contact_extruder0"])
 
     @property
-    def switch(self):
-        return int(self._settings.get(["switch"]))
+    def gcode_extruder0(self):
+        return str(self._settings.get(["gcode_extruder0"]))
 
     @property
-    def gcode_pin(self):
-        return str(self._settings.get(["gcode_pin"])).splitlines()
+    def enabled_extruder1(self):
+        return self.has_extruder1() and self._settings.get_boolean(["enabled_extruder1"])
 
     @property
-    def pin2(self):
-        return int(self._settings.get(["pin2"]))
+    def bounce_extruder1(self):
+        return self._settings.get_int(["bounce_extruder1"])
 
     @property
-    def bounce2(self):
-        return int(self._settings.get(["bounce2"]))
+    def contact_extruder1(self):
+        return self._settings.get_int(["contact_extruder1"])
 
     @property
-    def switch2(self):
-        return int(self._settings.get(["switch2"]))
+    def gcode_extruder1(self):
+        return str(self._settings.get(["gcode_extruder1"]))
 
     @property
-    def gcode_pin2(self):
-        return str(self._settings.get(["gcode_pin2"])).splitlines()
+    def enabled_door(self):
+        return self._settings.get_boolean(["enabled_door"])
 
     @property
-    def mode(self):
-        return int(self._settings.get(["mode"]))
+    def bounce_door(self):
+        return self._settings.get_int(["bounce_door"])
+
+    @property
+    def contact_door(self):
+        return self._settings.get_int(["contact_door"])
+
+    @property
+    def gcode_door(self):
+        return str(self._settings.get(["gcode_door"]))
 
     @property
     def pause_print(self):
@@ -105,23 +126,35 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     '''
     Sensor states
     '''
-    def has_pin(self):
-        return self.pin != -1
+    # def extruder0_enabled(self):
+    #     return self.enabled_extruder0 == 1
 
-    def has_pin2(self):
-        return self.pin2 != -1
+    def has_extruder1(self):
+        return self._printer_profile_manager.get_current_or_default().get('extruder').get('count') == 2
 
-    def no_filament(self):
+    # def extruder1_enabled(self):
+    #     return self.has_extruder1() and self.enabled_extruder1 == 1
+
+    # def door_enabled(self):
+    #     return self.enabled_door != -1
+
+    def outage_extruder0(self):
         try:
-            return GPIO.input(self.pin) == self.switch
+            return GPIO.input(self.PIN_EXTRUDER0) == self.contact_extruder0
         except Exception as e:
             self.popup_error(e)
             return False
-        
 
-    def no_filament2(self):
+    def outage_extruder1(self):
         try:
-            return GPIO.input(self.pin2) == self.switch2
+            return GPIO.input(self.PIN_EXTRUDER1) == self.contact_extruder1
+        except Exception as e:
+            self.popup_error(e)
+            return False
+
+    def outage_door(self):
+        try:
+            return GPIO.input(self.PIN_DOOR) == self.contact_door
         except Exception as e:
             self.popup_error(e)
             return False
@@ -129,38 +162,73 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     '''
     Sensor Initialization
     '''
-    def _setup_sensor(self):
+    def _gpio_pinout(self, mode):
+        if mode == GPIO.BOARD:
+            self.PIN_EXTRUDER0 = 29
+            self.PIN_EXTRUDER1 = 31
+            self.PIN_DOOR = 37
+        else:
+            self.PIN_EXTRUDER0 = 5
+            self.PIN_EXTRUDER1 = 6
+            self.PIN_DOOR = 26
+
+    def _gpio_setup(self):
         try:
-            if self.has_pin():
-                self.log_info("Setting up sensor.")
+            mode = GPIO.getmode()
+            if mode is None or mode is GPIO.UNKNOWN:
+                GPIO.setmode(GPIO.BCM)
+                mode = GPIO.getmode()
 
-                if self.mode == 0:
-                    self.log_info("Using Board Mode")
-                    GPIO.setmode(GPIO.BOARD)
-                else:
-                    self.log_info("Using BCM Mode")
-                    GPIO.setmode(GPIO.BCM)
-                
-                self.log_info("Filament Sensor 1 active on GPIO Pin [%s]"%self.pin)
-                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+            self._gpio_pinout(mode)
 
-                if self.has_pin2():
-                    self.log_info("Filament Sensor 2 active on GPIO Pin [%s]"%self.pin)
-                    GPIO.setup(self.pin2, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-                else:
-                    self.log_info("Pin 2 not configured, won't work unless configured!")
-            else:
-                self.log_info("Pin not configured, won't work unless configured!")
+            GPIO.cleanup(self.PIN_EXTRUDER0)
+            GPIO.cleanup(self.PIN_EXTRUDER1)
+            GPIO.cleanup(self.PIN_DOOR)
+
+            # GPIO.remove_event_detect(self.PIN_EXTRUDER0)
+            # GPIO.remove_event_detect(self.PIN_EXTRUDER1)
+            # GPIO.remove_event_detect(self.PIN_DOOR)
+
+            if self.enabled_extruder0 or self.enabled_extruder1 or self.enabled_door:
+
+                if self.enabled_extruder0:
+                    self.log_info("Filament Sensor active on Extruder 0, GPIO Pin [%s]" % self.PIN_EXTRUDER0)
+                    GPIO.setup(self.PIN_EXTRUDER0, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                    GPIO.remove_event_detect(self.PIN_EXTRUDER0)
+                    GPIO.add_event_detect(
+                        self.PIN_EXTRUDER0, GPIO.BOTH,
+                        callback=self.callback_extruder0,
+                        bouncetime=self.bounce_extruder0
+                    )
+
+                if self.enabled_extruder1:
+                    self.log_info("Filament Sensor active on Extruder 1, GPIO Pin [%s]" % self.PIN_EXTRUDER1)
+                    GPIO.setup(self.PIN_EXTRUDER1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                    GPIO.remove_event_detect(self.PIN_EXTRUDER1)
+                    GPIO.add_event_detect(
+                        self.PIN_EXTRUDER1, GPIO.BOTH,
+                        callback=self.callback_extruder1,
+                        bouncetime=self.bounce_extruder1
+                    )
+
+                if self.enabled_door:
+                    self.log_info("Door Sensor active, GPIO Pin [%s]" % self.PIN_DOOR)
+                    GPIO.setup(self.PIN_DOOR, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                    GPIO.remove_event_detect(self.PIN_DOOR)
+                    GPIO.add_event_detect(
+                        self.PIN_DOOR, GPIO.BOTH,
+                        callback=self.callback_door,
+                        bouncetime=self.bounce_door
+                    )
+
+            self.send_status_to_hmi()
+
         except Exception as e:
             self.popup_error(e)
 
     '''
     Callbacks
     '''
-    def on_after_startup(self):
-        self.log_info("Julia 2018 Filament Sensor started")
-        self._setup_sensor()
-
     def on_event(self, event, payload):
         if event is Events.TOOL_CHANGE:
             self.active_tool = int(payload["new"])
@@ -169,30 +237,32 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
         # Early abort in case of out ot filament when start printing, as we
         # can't change with a cold nozzle
         if event is Events.PRINT_STARTED:
-            if ( (self.has_pin() and self.no_filament()) or (self.has_pin2() and self.no_filament2()) ):
-                self.log_error("Printing aborted: no filament detected!")
-                self._printer.cancel_print()
+            if (self.enabled_extruder0 and self.outage_extruder0()) or \
+               (self.enabled_extruder1 and self.outage_extruder1()) or \
+               (self.enabled_door and self.outage_door()):
                 self.send_status_to_hmi()
+                self._printer.pause_print()
 
         # Enable sensor
+        '''
         if event in (
             Events.PRINT_STARTED,
             Events.PRINT_RESUMED
         ):
             self.log_info("%s: Enabling filament sensor." % (event))
-            if self.has_pin():
-                GPIO.remove_event_detect(self.pin)
+            if self.enabled_extruder0:
+                GPIO.remove_event_detect(self.PIN_EXTRUDER0)
                 GPIO.add_event_detect(
-                    self.pin, GPIO.BOTH,
-                    callback=self.cb_pin,
-                    bouncetime=self.bounce
+                    self.PIN_EXTRUDER0, GPIO.BOTH,
+                    callback=self.callback_extruder0,
+                    bouncetime=self.bounce_extruder0
                 )
-            if self.has_pin2():
-                GPIO.remove_event_detect(self.pin2)
+            if self.enabled_extruder1:
+                GPIO.remove_event_detect(self.PIN_EXTRUDER1)
                 GPIO.add_event_detect(
-                    self.pin2, GPIO.BOTH,
-                    callback=self.cb_pin2,
-                    bouncetime=self.bounce2
+                    self.PIN_EXTRUDER1, GPIO.BOTH,
+                    callback=self.callback_extruder1,
+                    bouncetime=self.bounce_extruder1
                 )
         # Disable sensor
         elif event in (
@@ -202,61 +272,67 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
             Events.ERROR
         ):
             self.log_info("%s: Disabling filament sensor." % (event))
-            GPIO.remove_event_detect(self.pin)
-            GPIO.remove_event_detect(self.pin2)
+            GPIO.remove_event_detect(self.PIN_EXTRUDER0)
+            GPIO.remove_event_detect(self.PIN_EXTRUDER1)
+        '''
 
-    def cb_pin(self, _):
-        sleep(self.bounce/1000)
+    def callback_extruder0(self, _):
+        sleep(self.bounce_extruder1 / 1000)  # Debounce
 
-        if not self.no_filament():
-            return self.popup_success("Filament 1 detected!")
+        if not self.outage_extruder0():
+            return self.popup_success("Filament inserted in extruder 0!")
 
         self.send_status_to_hmi()
-        self.popup_error("Out of filament 1!")
+        self.popup_error("Filament outage on extruder 0!")  # Debounce
 
-        if self.active_tool != 0:
+        if self.has_extruder1() and self.active_tool != 0:
             return
 
         if self.pause_print:
-            self.log_info("Pausing print.")
             self._printer.pause_print()
-        if self.gcode_pin:
-            self.log_info("Sending out of filament GCODE")
-            self._printer.commands(self.gcode_pin)
-    
-    def cb_pin2(self, _):
-        sleep(self.bounce2/1000)
+        if self.gcode_extruder0:
+            self._printer.commands(self.gcode_extruder0)
 
-        if not self.no_filament2():
-            return self.popup_success("Filament 2 detected!")
+    def callback_extruder1(self, _):
+        sleep(self.bounce_extruder1 / 1000)
+
+        if not self.outage_extruder1():
+            return self.popup_success("Filament inserted in extruder 1!")
 
         self.send_status_to_hmi()
-        self.popup_error("Out of filament 2!")
+        self.popup_error("Filament outage on extruder 1!")
 
-        if self.active_tool != 1:
+        if self.has_extruder1() and self.active_tool != 1:
             return
 
         if self.pause_print:
-            self.log_info("Pausing print.")
             self._printer.pause_print()
-        if self.gcode_pin2:
-            self.log_info("Sending out of filament 2 GCODE")
-            self._printer.commands(self.gcode_pin2)
+
+        if self.gcode_extruder1:
+            self._printer.commands(self.gcode_extruder1)
+
+    def callback_door(self, _):
+        sleep(self.bounce_door / 1000)
+
+        if not self.outage_door():
+            return self.popup_success("Door closed!")
+
+        self.send_status_to_hmi()
+        self.popup_error("Door open!")
+
+        if self.pause_print:
+            self._printer.pause_print()
+
+        if self.gcode_door:
+            self._printer.commands(self.gcode_door)
 
     '''
     REST status
     '''
     @octoprint.plugin.BlueprintPlugin.route("/status", methods=["GET"])
     def check_status(self):
-        # status = "-1"
-        # if self.has_pin():
-        #     status = "0" if self.no_filament() else "1"
-        # status1 = "-1"
-        # if self.has_pin2():
-        #     status1 = "0" if self.no_filament2() else "1"
-        # return jsonify(filament=status, filament2=status1)
         self.send_status_to_hmi()
-        return jsonify(self.status_dict())
+        return jsonify(self.get_status())
 
     '''
     Update Management
@@ -282,41 +358,53 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     Plugin Management
     '''
     def initialize(self):
+        self.log_info("Julia Filament Sensor started")
         self.log_info("Running RPi.GPIO version '{0}'".format(GPIO.VERSION))
         if GPIO.VERSION < "0.6":       # Need at least 0.6 for edge detection
             raise Exception("RPi.GPIO must be greater than 0.6")
         GPIO.setwarnings(False)        # Disable GPIO warnings
         self.active_tool = 0
-        self.send_status_to_hmi()
-    
+        # self.send_status_to_hmi()
+
+    def on_after_startup(self):
+        self._gpio_setup()
+        self.log_info(json.dumps(self._printer.get_current_temperatures(), indent=4))
+
     def on_settings_save(self, data):
         octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
         self.popup_success('Settings saved!')
-        self._setup_sensor()
+        self._gpio_setup()
 
     def get_assets(self):
         return dict(js=["js/Julia2018FilamentSensor.js"])
- 
+
     def get_template_configs(self):
         return [dict(type="settings", custom_bindings=True)]
 
     def get_settings_defaults(self):
         return dict(
-            enabled = True,
-            pin     = -1,   # Default is no pin
-            bounce  = 250,  # Debounce 250ms
-            switch  = 0,    # Normally Open
-            gcode_pin = '',
-            pin2     = -1,   # Default is no pin
-            bounce2  = 250,  # Debounce 250ms
-            switch2  = 0,    # Normally Open
-            gcode_pin2 = '',
-            mode    = 0,    # Board Mode
-            pause_print = True,
+            enabled_extruder0=-1,           # Default disabled
+            bounce_extruder0=250,           # Debounce 250ms
+            contact_extruder0=0,            # Normally Open
+            gcode_extruder0=None,
+
+            enabled_extruder1=-1,           # Default is disabled
+            bounce_extruder1=250,           # Debounce 250ms
+            contact_extruder1=0,            # Normally Open
+            gcode_extruder1=None,
+
+            enabled_door=-1,                # Default is disabled
+            bounce_door=250,                # Debounce 250ms
+            contact_door=0,                 # Normally Open
+            gcode_door=None,
+
+            pause_print=True,               # pause on outage
         )
+
 
 __plugin_name__ = "Julia Filament Sensor"
 __plugin_version__ = "1.1.2"
+
 
 def __plugin_load__():
     global __plugin_implementation__
