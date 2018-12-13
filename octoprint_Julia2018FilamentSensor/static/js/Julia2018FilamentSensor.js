@@ -7,7 +7,7 @@ $(function() {
         self.Config = undefined;
         self.VM_settings = parameters[0];
         self.VM_printerState = parameters[1];
-        self.VM_temperature = parameters[2];
+        self.VM_printerProfiles = parameters[2];
 
         self.showGeneral = ko.observable(true);
         self.showExtruder0 = ko.observable(false);
@@ -55,32 +55,42 @@ $(function() {
         self.onBeforeBinding = function() {
             console.log('Binding JFSViewModel')
 
-            // console.log(self.VM_settings);
-
             self.Config = self.VM_settings.settings.plugins.Julia2018FilamentSensor;
-            // console.log(self.VM_temperature.tools);
 
-            self.VM_temperature.tools.subscribe(function(value) {
-                // self.hasExtruder1(self.VM_temperature.tools.hasOwnProperty('tool1'));
-                self.hasExtruder1(Object.keys(value).length == 2);
-                self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
-            });
+            var currentProfileData = self.VM_printerProfiles.currentProfileData();
+            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
+                currentProfileData.extruder.count.subscribe(function(value) {
+                    self.hasExtruder1(value == 2);
+                    self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
+                });
+            } else {
+                self.hasExtruder1(false);
+            }
 
             self.Config.enabled_extruder0.subscribe(function(value) {
                 self.showExtruder0Config(value == 1);
             });
             self.Config.enabled_extruder1.subscribe(function(value) {
-                self.showExtruder1Config(value == 1);
+                self.showExtruder1Config(self.hasExtruder1() && value == 1);
             });
             self.Config.enabled_door.subscribe(function(value) {
                 self.showDoorConfig(value == 1);
             });
 
+            // console.log(self.VM_printerProfiles);
+
             self.testStatus();
         };
 
         self.onSettingsShown = function() {
-            self.hasExtruder1(Object.keys(self.VM_temperature.tools).length == 2);
+            var currentProfileData = self.VM_printerProfiles.currentProfileData();
+
+            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
+                self.hasExtruder1(currentProfileData.extruder.count() == 2);
+            } else {
+                self.hasExtruder1(false);
+            }
+            // self.hasExtruder1(self.VM_printerProfiles.currentProfileData.extruder.count == 2);
 
             // console.log(self.Config.enabled_extruder0());
             self.showExtruder0Config(self.Config.enabled_extruder0() == 1);
@@ -160,7 +170,7 @@ $(function() {
         // This is a list of dependencies to inject into the plugin, the order which you request
         // here is the order in which the dependencies will be injected into your view model upon
         // instantiation via the parameters argument
-        ["settingsViewModel", "printerStateViewModel", "temperatureViewModel"],
+        ["settingsViewModel", "printerStateViewModel", "printerProfilesViewModel"],
 
         // Finally, this is the list of selectors for all elements we want this view model to be bound to.
         ["#settings_j18fs"]
