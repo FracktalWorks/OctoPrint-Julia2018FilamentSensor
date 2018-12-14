@@ -10,120 +10,71 @@ $(function() {
         self.VM_printerState = parameters[1];
         self.VM_printerProfiles = parameters[2];
 
-        self.showGeneral = ko.observable(true);
+        self.sensorEnabled = ko.observable(false);
         self.showExtruder0 = ko.observable(false);
-        // self.showExtruder0Config = ko.observable(false);
         self.hasExtruder1 = ko.observable(false);
         self.showExtruder1 = ko.observable(false);
-        // self.showExtruder1Config = ko.observable(false);
         self.showDoor = ko.observable(false);
-        // self.showDoorConfig = ko.observable(false);
 
-
-        // self.toggleGeneral = function(){
-        //     self.showGeneral(!self.showGeneral());
-        // }
-        // self.toggleExtruder0 = function(){
-        //     self.showExtruder0(!self.showExtruder0());
-        // }
-        // self.toggleExtruder1 = function(){
-        //     self.showExtruder1(!self.showExtruder1());
-        // }
-        // self.toggleDoor = function(){
-        //     self.showDoor(!self.showDoor());
-        // }
-
-        self.testStatus = function(data) {
-            var status = function(x) {
-                switch (x) {
-                    case -1:
-                        return "Sensor disabled";
-                    case 0:
-                        return "Outage!";
-                    case 1:
-                        return "Filament loaded"
-                    default:
-                        return "Error"
-                }
-            };
-
-            var status_door = function(x) {
-                switch (x) {
-                    case -1:
-                        return "Sensor disabled";
-                    case 0:
-                        return "Open!";
-                    case 1:
-                        return "Closed"
-                    default:
-                        return "Error"
-                }
-            };
-
-            $.ajax("/plugin/Julia2018FilamentSensor/status")
-            .success(function(data) {
-                var msg ="";
-                console.log(data);
-
-                if(data.hasOwnProperty('extruder0'))
-                    msg += "<b>Extruder 0:</b> " + status(data['extruder0']) + "<br/>";
-
-                if(data.hasOwnProperty('extruder1') && data['extruder1'] != undefined)
-                    msg += "<b>Extruder 1:</b> " + status(data['extruder1']) + "<br/>";
-                
-                if(data.hasOwnProperty('door') && data['door'] != -1)
-                    msg += "<b>Door:</b> " + status_door(data['door']);
-
-                self.onDataUpdaterPluginMessage("Julia2018FilamentSensor", {type: 'popup', msg, msgType:'info', hide:false});
-            })
-            .fail(function(req, status) {
-                console.log(status)
-                self.onDataUpdaterPluginMessage("Julia2018FilamentSensor", {msg: "Error", type:'info', hide:false});
-            });
+        var status_text_extruder = function(x) {
+            switch (x) {
+                case -1:
+                    return "Sensor disabled";
+                case 0:
+                    return "Outage!";
+                case 1:
+                    return "Filament loaded"
+                default:
+                    return "Error"
+            }
         };
 
-        // self._saveConfig = function() {
-        //     var data = {
-        //         plugins: {
-        //             Julia2018FirmwareUpdater: {
-        //                 flash_method: self.configFlashMethod(),
-        //                 avrdude_path: self.configAvrdudePath(),
-        //                 avrdude_conf: self.configAvrdudeConfigFile(),
-        //                 avrdude_avrmcu: self.configAvrdudeMcu(),
-        //                 avrdude_programmer: self.configAvrdudeProgrammer(),
-        //                 avrdude_baudrate: self.configAvrdudeBaudRate(),
-        //                 avrdude_disableverify: self.configAvrdudeDisableVerification(),
-        //                 bossac_path: self.configBossacPath(),
-        //                 bossac_disableverify: self.configBossacDisableVerification()
-        //             }
-        //         }
-        //     };
-        //     self.VM_settings.saveData(data);
-        // };
+        var status_text_door = function(x) {
+            switch (x) {
+                case -1:
+                    return "Sensor disabled";
+                case 0:
+                    return "Open!";
+                case 1:
+                    return "Closed"
+                default:
+                    return "Error"
+            }
+        };
+
+        self.testStatus = function(data) {
+            
+            $.ajax("/plugin/Julia2018FilamentSensor/status");
+            // .success(function(data) {
+            //     var msg = "";
+            //     var type = "info"
+            //     // console.log(data);
+
+            //     if (data['sensor_enabled'] == 1) {
+            //         msg += "<b>Extruder 0:</b> " + status(data['extruder0']) + "<br/>";
+            //         if (data['extruder1'] != undefined)
+            //             msg += "<b>Extruder 1:</b> " + status(data['extruder1']) + "<br/>";
+            //         if (data['door'] != -1)
+            //             msg += "<b>Door:</b> " + status_door(data['door']);
+            //     } else {
+            //         msg = "<b>Sensing disabled!</b>"
+            //         type = "warning"
+            //     }
+
+            //     // self.onDataUpdaterPluginMessage("Julia2018FilamentSensor", {type: 'popup', msg, msgType:type, hide:false});
+            // })
+            // .fail(function(req, status) {
+            //     console.log(status)
+            //     // self.onDataUpdaterPluginMessage("Julia2018FilamentSensor", {msg: "Error", type:'error', hide:false});
+            // });
+        };
 
         self.showSensorConfig = function() {
-            // // Load the general settings
-            // self.configFlashMethod(self.Config.flash_method());
-
-            // // Load the avrdude settings
-            // self.configAvrdudePath(self.Config.avrdude_path());
-            // self.configAvrdudeConfigFile(self.Config.avrdude_conf());
-            // self.configAvrdudeMcu(self.Config.avrdude_avrmcu());
-            // self.configAvrdudeProgrammer(self.Config.avrdude_programmer());
-            // self.configAvrdudeBaudRate(self.Config.avrdude_baudrate());
-            // if(self.Config.avrdude_disableverify() != 'false') {
-            //     self.configAvrdudeDisableVerification(self.Config.avrdude_disableverify());
-            // }
-
-            // // Load the bossac settings
-            // self.configBossacPath(self.Config.bossac_path());
-            // self.configBossacDisableVerification(self.Config.bossac_disableverify());
-
             self.sensorConfigDialog.modal();
         };
 
         self.onConfigClose = function() {
-            // self._saveConfig();
+            self.VM_settings.saveData();
             self.sensorConfigDialog.modal("hide");
         };
 
@@ -133,7 +84,7 @@ $(function() {
                 self.closePopup();
             }
             var data = {
-                title: 'Julia Filament Sensor',
+                title: 'Julia Filament & Door Sensor',
                 text: msg,
                 type: msgType,
                 hide: hide
@@ -166,17 +117,20 @@ $(function() {
                 self.hasExtruder1(false);
             }
 
-            // self.Config.enabled_extruder0.subscribe(function(value) {
-            //     self.showExtruder0Config(value == 1);
-            // });
-            // self.Config.enabled_extruder1.subscribe(function(value) {
-            //     self.showExtruder1Config(self.hasExtruder1() && value == 1);
-            // });
-            // self.Config.enabled_door.subscribe(function(value) {
-            //     self.showDoorConfig(value == 1);
-            // });
+            self.Config.sensor_enabled.subscribe(function(value) {
+                self.sensorEnabled(value == 1);
+            });
+            self.Config.enabled_extruder0.subscribe(function(value) {
+                self.showExtruder0(value == 1);
+            });
+            self.Config.enabled_extruder1.subscribe(function(value) {
+                self.showExtruder1(self.hasExtruder1() && value == 1);
+            });
+            self.Config.enabled_door.subscribe(function(value) {
+                self.showDoor(value == 1);
+            });
 
-            // console.log(self.VM_printerProfiles);
+            console.log(self.VM_settings);
 
             self.testStatus();
         };
@@ -191,22 +145,39 @@ $(function() {
             }
             // self.hasExtruder1(self.VM_printerProfiles.currentProfileData.extruder.count == 2);
 
-            // // console.log(self.Config.enabled_extruder0());
-            // self.showExtruder0Config(self.Config.enabled_extruder0() == 1);
-            // self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
-            // self.showDoorConfig(self.Config.enabled_door() == 1);
+            self.sensorEnabled(self.Config.sensor_enabled() == 1);
+            self.showExtruder0(self.Config.enabled_extruder0() == 1);
+            self.showExtruder1(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
+            self.showDoor(self.Config.enabled_door() == 1);
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin != "Julia2018FilamentSensor") {
-                // console.log('Ignoring '+plugin);
+            if (plugin != "Julia2018FilamentSensor")
                 return;
+
+            var msg = "";
+            var msgType = "info"
+            var hide = true;
+
+            if (data.hasOwnProperty('type') && data.type == "popup") {
+                msg = data.msg;
+                msgType = data.msgType;
+                hide = data.hasOwnProperty('hide') ? data.hide : true;
+            } else {
+                if (data['sensor_enabled'] == 1) {
+                    msg += "<b>Extruder 0:</b> " + status_text_extruder(data['extruder0']) + "<br/>";
+                    if (data['extruder1'] != undefined)
+                        msg += "<b>Extruder 1:</b> " + status_text_extruder(data['extruder1']) + "<br/>";
+                    if (data['door'] != -1)
+                        msg += "<b>Door:</b> " + status_door(data['door']);
+                } else {
+                    msg = "<b>Sensing disabled!</b>"
+                    type = "warning"
+                }
             }
 
-            if (data.type != "popup")
-                return;
-
-            self.showPopup(data.msg, data.msgType, (data && data.hasOwnProperty('hide') ? data.hide : true));
+            // self.showPopup(data.msg, data.msgType, (data && data.hasOwnProperty('hide') ? data.hide : true));
+            self.showPopup(msg, msgType, hide);
         };
     };
 

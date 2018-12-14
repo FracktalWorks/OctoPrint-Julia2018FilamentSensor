@@ -10,25 +10,19 @@
         <div> {# General settings #}
             <h5>General</h5>
 
-            {# 
             <div class="control-group">
-                <label class="control-label">{{ _('GPIO Mode') }}</label>
+                <label class="control-label">{{ _('Sensor') }}</label>
                 <div class="controls">
-                    <input type="text" class="input" data-bind="value: (Config.mode() > 0 ? 'BCM' : 'Board')" readonly>
-                    {# <select class="select-mini" data-bind="value: Config.mode">
-                        <option value=0>{{ _('Board Mode') }}</option>
-                        <option value=1>{{ _('BCM Mode') }}</option>
-                    </select> 
+                    <select class="select-mini" data-bind="value: Config.sensor_enabled">
+                        <option value=0>{{ _('Disabled') }}</option>
+                        <option value=1>{{ _('Enabled') }}</option>
+                    </select>
                 </div>
-            </div> 
-            #}
+            </div>
 
             <div class="control-group">
                 <label class="control-label">{{ _('Pause on trigger') }}</label>
                 <div class="controls">
-                    {# <label class="checkbox">
-                        <input type="checkbox" data-bind="checked: Config.pause_print"> {{ _('Pause print when out of filament') }}
-                    </label> #}
                     <select class="select-mini" data-bind="value: Config.pause_print">
                         <option value=0>{{ _('Disabled') }}</option>
                         <option value=1>{{ _('Enabled') }}</option>
@@ -36,10 +30,17 @@
                 </div>
             </div>
 
+            <div class="control-group">
+                <label class="control-label"></label>
+                <div class="controls">
+                    <button class="btn btn-info" data-bind="click: testStatus">Test Status</button>
+                </div>
+            </div>
+
             <hr/>
         </div> {# General settings #}
 
-        <div data-bind="visible: Config.enabled_extruder0()"> {# Extruder 0 #}
+        <div data-bind="visible: (sensorEnabled() && showExtruder0())"> {# Extruder 0 #}
             <h5>Extruder 0</h5>
 
             <div class="control-group">
@@ -72,7 +73,7 @@
             <hr/>
         </div> {# Extruder 0 #}
 
-        <div data-bind="visible: (hasExtruder1() && Config.enabled_extruder1())"> {# Extruder 1 #}
+        <div data-bind="visible: (sensorEnabled() && hasExtruder1() && showExtruder1())"> {# Extruder 1 #}
             <h5>Extruder 1</h5>
 
             <div class="control-group">
@@ -105,10 +106,8 @@
             <hr/>
         </div> {# Extruder 1 #}
 
-        <div data-bind="visible: Config.enabled_door"> {# Door #}
-            <label>
-                <h5>Door</h5>
-            </label>
+        <div data-bind="visible: (sensorEnabled() && showDoor())"> {# Door #}
+            <h5>Door</h5>
 
             <div class="control-group">
                 <label class="control-label">{{ _('Contact debounce time') }}</label>
@@ -141,10 +140,6 @@
         </div> {# Door #}
 
     </form>
-
-    <div class="align-right">
-        <button class="btn btn-info" data-bind="click: testStatus">Test Status</button>
-    </div>
 
     <div id="settings_j18fs_config" class="modal hide fade">
         <div class="modal-header">
