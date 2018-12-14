@@ -64,7 +64,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
         door = -1
         if self.enabled_door:
             door = 0 if self.outage_door() else 1
-        return dict(extruder0=extruder0, extruder1=extruder1, door=door, active_tool=self.active_tool)
+        return dict(sensor_enabled=self.sensor_enabled, extruder0=extruder0, extruder1=extruder1, door=door, active_tool=self.active_tool)
 
     def send_status_to_hmi(self):
         self._plugin_manager.send_plugin_message(self._identifier, self.get_status())
@@ -197,7 +197,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
             # GPIO.remove_event_detect(self.PIN_EXTRUDER1)
             # GPIO.remove_event_detect(self.PIN_DOOR)
 
-            if self.enabled_extruder0 or self.enabled_extruder1 or self.enabled_door:
+            if self.sensor_enabled and (self.enabled_extruder0 or self.enabled_extruder1 or self.enabled_door):
 
                 if self.enabled_extruder0:
                     self.log_info("Filament Sensor active on Extruder 0, GPIO Pin [%s]" % self.PIN_EXTRUDER0)
@@ -241,6 +241,9 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
         # Early abort in case of out ot filament when start printing, as we
         # can't change with a cold nozzle
         if event is Events.PRINT_STARTED:
+            if not self.sensor_enabled:
+                return
+
             if (self.enabled_extruder0 and self.outage_extruder0()) or \
                (self.has_extruder1() and self.enabled_extruder1 and self.outage_extruder1()) or \
                (self.enabled_door and self.outage_door()):

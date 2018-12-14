@@ -3,6 +3,7 @@ $(function() {
         var self = this;
 
         self.popup = undefined;
+        self.sensorConfigDialog = undefined;
 
         self.Config = undefined;
         self.VM_settings = parameters[0];
@@ -11,104 +12,26 @@ $(function() {
 
         self.showGeneral = ko.observable(true);
         self.showExtruder0 = ko.observable(false);
-        self.showExtruder0Config = ko.observable(false);
+        // self.showExtruder0Config = ko.observable(false);
         self.hasExtruder1 = ko.observable(false);
         self.showExtruder1 = ko.observable(false);
-        self.showExtruder1Config = ko.observable(false);
+        // self.showExtruder1Config = ko.observable(false);
         self.showDoor = ko.observable(false);
-        self.showDoorConfig = ko.observable(false);
+        // self.showDoorConfig = ko.observable(false);
 
 
-        self.toggleGeneral = function(){
-            self.showGeneral(!self.showGeneral());
-        }
-        self.toggleExtruder0 = function(){
-            self.showExtruder0(!self.showExtruder0());
-        }
-        self.toggleExtruder1 = function(){
-            self.showExtruder1(!self.showExtruder1());
-        }
-        self.toggleDoor = function(){
-            self.showDoor(!self.showDoor());
-        }
-
-        self.showPopup = function(msg, msgType, hide=true){
-            if (self.popup !== undefined){
-                self.closePopup();
-            }
-            var data = {
-                title: 'Julia Filament Sensor',
-                text: msg,
-                type: msgType,
-                hide: hide
-            };
-            self.popup = new PNotify(data);
-        };
-
-        self.closePopup = function() {
-            if (self.popup !== undefined) {
-                self.popup.remove();
-            }
-        };
-
-
-        self.onBeforeBinding = function() {
-            console.log('Binding JFSViewModel')
-
-            self.Config = self.VM_settings.settings.plugins.Julia2018FilamentSensor;
-
-            var currentProfileData = self.VM_printerProfiles.currentProfileData();
-            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
-                currentProfileData.extruder.count.subscribe(function(value) {
-                    self.hasExtruder1(value == 2);
-                    self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
-                });
-            } else {
-                self.hasExtruder1(false);
-            }
-
-            self.Config.enabled_extruder0.subscribe(function(value) {
-                self.showExtruder0Config(value == 1);
-            });
-            self.Config.enabled_extruder1.subscribe(function(value) {
-                self.showExtruder1Config(self.hasExtruder1() && value == 1);
-            });
-            self.Config.enabled_door.subscribe(function(value) {
-                self.showDoorConfig(value == 1);
-            });
-
-            // console.log(self.VM_printerProfiles);
-
-            self.testStatus();
-        };
-
-        self.onSettingsShown = function() {
-            var currentProfileData = self.VM_printerProfiles.currentProfileData();
-
-            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
-                self.hasExtruder1(currentProfileData.extruder.count() == 2);
-            } else {
-                self.hasExtruder1(false);
-            }
-            // self.hasExtruder1(self.VM_printerProfiles.currentProfileData.extruder.count == 2);
-
-            // console.log(self.Config.enabled_extruder0());
-            self.showExtruder0Config(self.Config.enabled_extruder0() == 1);
-            self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
-            self.showDoorConfig(self.Config.enabled_door() == 1);
-        };
-
-        self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin != "Julia2018FilamentSensor") {
-                // console.log('Ignoring '+plugin);
-                return;
-            }
-
-            if (data.type != "popup")
-                return;
-
-            self.showPopup(data.msg, data.msgType, (data && data.hasOwnProperty('hide') ? data.hide : true));
-        };
+        // self.toggleGeneral = function(){
+        //     self.showGeneral(!self.showGeneral());
+        // }
+        // self.toggleExtruder0 = function(){
+        //     self.showExtruder0(!self.showExtruder0());
+        // }
+        // self.toggleExtruder1 = function(){
+        //     self.showExtruder1(!self.showExtruder1());
+        // }
+        // self.toggleDoor = function(){
+        //     self.showDoor(!self.showDoor());
+        // }
 
         self.testStatus = function(data) {
             var status = function(x) {
@@ -157,6 +80,133 @@ $(function() {
                 console.log(status)
                 self.onDataUpdaterPluginMessage("Julia2018FilamentSensor", {msg: "Error", type:'info', hide:false});
             });
+        };
+
+        // self._saveConfig = function() {
+        //     var data = {
+        //         plugins: {
+        //             Julia2018FirmwareUpdater: {
+        //                 flash_method: self.configFlashMethod(),
+        //                 avrdude_path: self.configAvrdudePath(),
+        //                 avrdude_conf: self.configAvrdudeConfigFile(),
+        //                 avrdude_avrmcu: self.configAvrdudeMcu(),
+        //                 avrdude_programmer: self.configAvrdudeProgrammer(),
+        //                 avrdude_baudrate: self.configAvrdudeBaudRate(),
+        //                 avrdude_disableverify: self.configAvrdudeDisableVerification(),
+        //                 bossac_path: self.configBossacPath(),
+        //                 bossac_disableverify: self.configBossacDisableVerification()
+        //             }
+        //         }
+        //     };
+        //     self.VM_settings.saveData(data);
+        // };
+
+        self.showSensorConfig = function() {
+            // // Load the general settings
+            // self.configFlashMethod(self.Config.flash_method());
+
+            // // Load the avrdude settings
+            // self.configAvrdudePath(self.Config.avrdude_path());
+            // self.configAvrdudeConfigFile(self.Config.avrdude_conf());
+            // self.configAvrdudeMcu(self.Config.avrdude_avrmcu());
+            // self.configAvrdudeProgrammer(self.Config.avrdude_programmer());
+            // self.configAvrdudeBaudRate(self.Config.avrdude_baudrate());
+            // if(self.Config.avrdude_disableverify() != 'false') {
+            //     self.configAvrdudeDisableVerification(self.Config.avrdude_disableverify());
+            // }
+
+            // // Load the bossac settings
+            // self.configBossacPath(self.Config.bossac_path());
+            // self.configBossacDisableVerification(self.Config.bossac_disableverify());
+
+            self.sensorConfigDialog.modal();
+        };
+
+        self.onConfigClose = function() {
+            // self._saveConfig();
+            self.sensorConfigDialog.modal("hide");
+        };
+
+
+        self.showPopup = function(msg, msgType, hide=true){
+            if (self.popup !== undefined){
+                self.closePopup();
+            }
+            var data = {
+                title: 'Julia Filament Sensor',
+                text: msg,
+                type: msgType,
+                hide: hide
+            };
+            self.popup = new PNotify(data);
+        };
+
+        self.closePopup = function() {
+            if (self.popup !== undefined) {
+                self.popup.remove();
+            }
+        };
+
+        self.onStartup = function() {
+            self.sensorConfigDialog = $("#settings_j18fs_config");
+        };
+
+        self.onBeforeBinding = function() {
+            console.log('Binding JFSViewModel')
+
+            self.Config = self.VM_settings.settings.plugins.Julia2018FilamentSensor;
+
+            var currentProfileData = self.VM_printerProfiles.currentProfileData();
+            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
+                currentProfileData.extruder.count.subscribe(function(value) {
+                    self.hasExtruder1(value == 2);
+                    self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
+                });
+            } else {
+                self.hasExtruder1(false);
+            }
+
+            // self.Config.enabled_extruder0.subscribe(function(value) {
+            //     self.showExtruder0Config(value == 1);
+            // });
+            // self.Config.enabled_extruder1.subscribe(function(value) {
+            //     self.showExtruder1Config(self.hasExtruder1() && value == 1);
+            // });
+            // self.Config.enabled_door.subscribe(function(value) {
+            //     self.showDoorConfig(value == 1);
+            // });
+
+            // console.log(self.VM_printerProfiles);
+
+            self.testStatus();
+        };
+
+        self.onSettingsShown = function() {
+            var currentProfileData = self.VM_printerProfiles.currentProfileData();
+
+            if (currentProfileData && currentProfileData.hasOwnProperty('extruder')) {
+                self.hasExtruder1(currentProfileData.extruder.count() == 2);
+            } else {
+                self.hasExtruder1(false);
+            }
+            // self.hasExtruder1(self.VM_printerProfiles.currentProfileData.extruder.count == 2);
+
+            // // console.log(self.Config.enabled_extruder0());
+            // self.showExtruder0Config(self.Config.enabled_extruder0() == 1);
+            // self.showExtruder1Config(self.hasExtruder1() && self.Config.enabled_extruder1() == 1);
+            // self.showDoorConfig(self.Config.enabled_door() == 1);
+        };
+
+        self.onDataUpdaterPluginMessage = function(plugin, data) {
+            if (plugin != "Julia2018FilamentSensor") {
+                // console.log('Ignoring '+plugin);
+                return;
+            }
+
+            if (data.type != "popup")
+                return;
+
+            self.showPopup(data.msg, data.msgType, (data && data.hasOwnProperty('hide') ? data.hide : true));
         };
     };
 
