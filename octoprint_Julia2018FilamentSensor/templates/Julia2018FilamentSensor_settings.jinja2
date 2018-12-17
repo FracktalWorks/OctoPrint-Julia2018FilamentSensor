@@ -161,7 +161,7 @@
                     </div>
                 </div>
 
-                <div class="control-group">
+                <div class="control-group" data-bind="visible: hasExtruder1">
                     <label class="control-label">{{ _('Extruder 1') }}</label>
                     <div class="controls">
                         <select class="select-mini" data-bind="value: Config.enabled_extruder1">

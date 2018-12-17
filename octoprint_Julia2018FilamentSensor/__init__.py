@@ -355,7 +355,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     def get_update_information(self):
         return dict(
             octoprint_Julia2018FilamentSensor=dict(
-                displayName="Julia Filament Sensor",
+                displayName=self._plugin_name,
                 displayVersion=self._plugin_version,
 
                 # version check: github repository
@@ -444,7 +444,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
         # self.send_status_to_hmi()
 
 
-__plugin_name__ = "Julia Filament Sensor"
+__plugin_name__ = "Julia Filament & Door Sensor"
 __plugin_version__ = "1.1.2"
 
 
