@@ -5,7 +5,7 @@ import octoprint.plugin
 from octoprint.events import Events
 import RPi.GPIO as GPIO
 from time import sleep
-import flask
+# import flask
 from flask import jsonify
 from octoprint.server import NO_CONTENT
 # import json
