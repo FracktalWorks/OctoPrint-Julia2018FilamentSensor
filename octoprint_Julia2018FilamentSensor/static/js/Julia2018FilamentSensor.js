@@ -169,7 +169,7 @@ $(function() {
                     if (data['extruder1'] != undefined)
                         msg += "<b>Extruder 1:</b> " + status_text_extruder(data['extruder1']) + "<br/>";
                     if (data['door'] != -1)
-                        msg += "<b>Door:</b> " + status_door(data['door']);
+                        msg += "<b>Door:</b> " + status_text_door(data['door']);
                 } else {
                     msg = "<b>Sensing disabled!</b>"
                     type = "warning"

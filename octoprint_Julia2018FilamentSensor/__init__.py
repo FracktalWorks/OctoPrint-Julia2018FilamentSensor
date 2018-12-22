@@ -32,6 +32,10 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     PIN_DOOR        = 26    37
     '''
 
+    PIN_EXTRUDER0 = 5
+    PIN_EXTRUDER1 = 6
+    PIN_DOOR = 26
+
     '''
     Popup messages
     '''
@@ -205,15 +209,15 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     '''
     Sensor Initialization
     '''
-    def _gpio_pinout(self, mode):
-        if mode == GPIO.BOARD:
-            self.PIN_EXTRUDER0 = 29
-            self.PIN_EXTRUDER1 = 31
-            self.PIN_DOOR = 37
-        else:
-            self.PIN_EXTRUDER0 = 5
-            self.PIN_EXTRUDER1 = 6
-            self.PIN_DOOR = 26
+    # def _gpio_pinout(self, mode):
+    #     if mode == GPIO.BOARD:
+    #         self.PIN_EXTRUDER0 = 29
+    #         self.PIN_EXTRUDER1 = 31
+    #         self.PIN_DOOR = 37
+    #     else:
+    #         self.PIN_EXTRUDER0 = 5
+    #         self.PIN_EXTRUDER1 = 6
+    #         self.PIN_DOOR = 26
 
     def _gpio_clean_pin(self, pin):
         try:
@@ -222,13 +226,15 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
             pass
 
     def _gpio_setup(self):
+        self.log_info("_gpio_setup")
         try:
-            mode = GPIO.getmode()
-            if mode is None or mode is GPIO.UNKNOWN:
-                GPIO.setmode(GPIO.BCM)
-                mode = GPIO.getmode()
+            # mode = GPIO.getmode()
+            # if mode is None or mode is GPIO.UNKNOWN:
+            #     GPIO.setmode(GPIO.BCM)
+            #     mode = GPIO.getmode()
+            GPIO.setmode(GPIO.BCM)
 
-            self._gpio_pinout(mode)
+            # self._gpio_pinout(mode)
 
             self._gpio_clean_pin(self.PIN_EXTRUDER0)
             self._gpio_clean_pin(self.PIN_EXTRUDER1)
@@ -269,6 +275,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
             else:
                 self.log_info("Sensor disabled")
         except Exception as e:
+            self.log_error(e)
             self.popup_error(e)
 
         self.send_status_to_hmi()
@@ -437,11 +444,14 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
                 self._settings.set(["gcode_extruder0"], str(self._settings.get(["gcode_pin2"])).replace("\n", ";"))
 
     def on_settings_save(self, data):
-        self._logger.info("on_settings_save: " + str(data))
-        octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
-        self.popup_success('Settings saved!')
-        self._gpio_setup()
-        # self.send_status_to_hmi()
+        try:
+            # self._logger.info("on_settings_save: " + str(data))
+            octoprint.plugin.SettingsPlugin.on_settings_save(self, data)
+            self.popup_success('Settings saved!')
+            self._gpio_setup()
+        except Exception as e:
+            self.log_error(e)
+        self.send_status_to_hmi()
 
 
 __plugin_name__ = "Julia Filament & Door Sensor"
