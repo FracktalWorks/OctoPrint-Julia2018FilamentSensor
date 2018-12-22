@@ -9,3 +9,4 @@ dist
 *.zip
 venv/
 bkp/
+*.vscode
