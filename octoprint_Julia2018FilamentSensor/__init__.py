@@ -183,7 +183,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
     def has_extruder1(self):
         if not self._printer_profile_manager.get_current():
             return False
-        return self._printer_profile_manager.get_current().get('extruder').get('count') == 2
+        return self._printer_profile_manager.get_current().get('extruder').get('count') >= 2
 
     def outage_extruder0(self):
         try:
@@ -455,7 +455,7 @@ class Julia2018FilamentSensorPlugin(octoprint.plugin.StartupPlugin,
 
 
 __plugin_name__ = "Julia Filament & Door Sensor"
-__plugin_version__ = "1.2.1"
+__plugin_version__ = "1.2.2"
 
 
 def __plugin_load__():
