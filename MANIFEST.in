@@ -1,1 +1,3 @@
 include README.md
+include versioneer.py
+include octoprint_JuliaAdvanced2022TouchUI/_version.py
